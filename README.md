@@ -28,8 +28,8 @@
 >> 查询/删除镜像：
 `docker images`
 `docker rmi ID`
-
-> 3. 创建镜像
+> 3. 下载镜像:`docker pull ubuntu:16.04`;运行：`docker run -t -i ubuntu:16.04 bash`
+> 4. 创建镜像
 当我们从docker镜像仓库中下载的镜像不能满足我们的需求时，我们可以通过以下两种方式对镜像进行更改。
 >>1. 使用 Dockerfile 指令来创建一个新的镜像
 >>> 创建Dockerfile文件:  
@@ -55,3 +55,9 @@ CMD     /usr/sbin/sshd -D
 >>>> - e218edb10161:容器ID
 >>>> - duo/ubuntu:v2:指定要创建的目标镜像名
 >>> 执行`docker images`可以查看新镜像，执行`docker run -ti duo/ubuntu:16.0 bash`运行新镜像。
+> 5. 进入docker容器
+>> 运行`docker ps -a`查看容器信息；
+>> * `docker attach ID`进入容器: 使用该命令有一个问题。当多个窗口同时使用该命令进入该容器时，所有的窗口都会同步显示。如果有一个窗口阻塞了，那么其他窗口也无法再进行操作。
+>> * 使用SSH进入Docker容器: 使用了Docker容器之后不建议使用ssh进入到Docker容器内。
+>> * 使用nsenter进入Docker容器:
+>> * 使用`docker exec -it ID su xx`进入Docker容器
