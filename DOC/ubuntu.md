@@ -17,3 +17,24 @@
 >    /home/lizd/work1/rootfs *(rw,sync,no_root_squash,no_subtree_check)
 >    ```
 >
+> 3. 重启相关服务：
+>
+>    ```
+>    /etc/init.d/rpcbind  restart
+>    /etc/init.d/nfs-kernel-server  restart
+>    ```
+
+# tftpd
+
+> 1. 安装：`sudo apt-get install tftp-hpa tftpd-hpa xinetd`
+>
+> 2. 配置（ /etc/default/tftpd-hpa）：
+>
+>    ```
+>    TFTP_USERNAME="tftp"
+>    TFTP_DIRECTORY="/home/lizd/tftpboot"
+>    TFTP_ADDRESS="0.0.0.0:69"
+>    TFTP_OPTIONS="-l -c -s"
+>    ```
+>
+> 3. 重启：`sudo /etc/init.d/tftpd-hpa restart`

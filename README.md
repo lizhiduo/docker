@@ -2,6 +2,9 @@
 --------------------------------
 参考：[docker入门到实践](https://legacy.gitbook.com/book/yeasy/docker_practice/details)  
 声明：内容主要来源宋老师博客 本文只为做个学习记录
+
+qemu模拟arm环境搭建：[qemu-arm](DOC/qemu.md)
+
 ## 什么是docker
 > docker就是虚拟出操作系统，让应用之间彼此隔离。而像我们常用的VmWare和Virtualbox是虚拟出机器。  
 >其区别在于，docker让两个进程觉得自己拥有自己的根文件系统以及各种系统资源等。而VM和Vbox则是让两个进程觉得自己运行在不同的机器上。所以docker达到了虚拟机的效果，但是又没有虚拟机的开销，仅仅是虚拟应用运行的环境。
@@ -73,7 +76,7 @@ CMD     /usr/sbin/sshd -D
 >
 >   1、bridge方式： -–net=”bridge”
 >
->   ![1540090519805](DOC\1540090519805.png)
+>   ![1540090519805](DOC/1540090519805.png)
 >
 >   容器与Host网络是连通的： 
 >   eth0实际上是veth pair的一端，另一端（vethb689485）连在docker0网桥上 
@@ -85,7 +88,7 @@ CMD     /usr/sbin/sshd -D
 >
 >   3、host方式： -–net=”host” 
 >
->   ![](Z:\docker\DOC\2018-10-21_10-59-10.png)
+>   ![](DOC/2018-10-21_10-59-10.png)
 >
 >   容器和主机共用网络资源，使用宿主机的IP和端口 
 >   这种方式是不安全的。如果在隔离良好的环境中（比如租户的虚拟机中）使用这种方式，问题不大。
@@ -93,4 +96,4 @@ CMD     /usr/sbin/sshd -D
 >   4、container复用方式： -–net=”container:name or id” 
 >   新创建的容器和已经存在的一个容器共享一个IP网络资源
 >
->   ![1540091001176](C:\Users\lizhi\AppData\Roaming\Typora\typora-user-images\1540091001176.png)
+>   ![1540091001176](DOC/1540091001176.png)
