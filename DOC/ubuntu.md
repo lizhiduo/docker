@@ -6,3 +6,14 @@
 > 1. 新增新用户：`adduser xx` 会在`hmoe`目录下创建用户目录。
 > 2. 增加`root`权限:
 >> 安装`sudo`：`apt-get install sudo`；然后在 `/etc/sudoers`添加`xxx ALL = NOPASSWD: ALL`
+
+# NSF
+
+> 1. 安装：`sudo apt-get install nfs-kernel-server`
+>
+> 2. 配置nfs根目录，在`/etc/exports`文件中添加如下内容：
+>
+>    ```
+>    /home/lizd/work1/rootfs *(rw,sync,no_root_squash,no_subtree_check)
+>    ```
+>

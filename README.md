@@ -44,20 +44,53 @@ RUN     /bin/echo -e "LANG=\"en_US.UTF-8\"" >/etc/default/local
 EXPOSE  22  
 EXPOSE  80
 CMD     /usr/sbin/sshd -D
-```  
->> 执行`docker build -t duo/ubuntu:16.04 .`构建镜像。构建成功后，执行`docker images`可以查看镜像列表。执行`docker run -t -i duo/ubuntu:16.0 /bin/bash`可以运行镜像。
->>2. 从已经创建的容器中更新镜像，并且提交这个镜像
->>> 基于步骤1中的ubunt镜像做增量，运行镜像在容器中执行`apt-get update && apt-get install gcc`安装编译器（vim也一样可以在容器中安装，也可以像步骤1中，构建镜像时候添加命令安装）。
->>> commit增量镜像，先执行`exit`退出容器，然后执行`docker commit -m="add gcc" -a="lizhiduo" e218edb10161 duo/ubuntu:v2`。
-参数说明：
->>>> - -m:提交的描述信息
->>>> - -a:指定镜像作者
->>>> - e218edb10161:容器ID
->>>> - duo/ubuntu:v2:指定要创建的目标镜像名
->>> 执行`docker images`可以查看新镜像，执行`docker run -ti duo/ubuntu:16.0 bash`运行新镜像。
+```
+>> 执行`docker build -t duo/ubuntu:16.04 .`构建镜像。构建成功后，执行`docker images`可以查看镜像列表。执行`docker run -t -i duo/ubuntu:16.0 /bin/bash`可以运行镜像，执行`docker run -it -v /home/lizhiduo/work/dockerShare:/share duo/ubuntu:v1.3 su duo`便可创建一个可以和主机共享目录的容器。
+>> 2. 从已经创建的容器中更新镜像，并且提交这个镜像
+>> > 基于步骤1中的ubunt镜像做增量，运行镜像在容器中执行`apt-get update && apt-get install gcc`安装编译器（vim也一样可以在容器中安装，也可以像步骤1中，构建镜像时候添加命令安装）。
+>> > commit增量镜像，先执行`exit`退出容器，然后执行`docker commit -m="add gcc" -a="lizhiduo" e218edb10161 duo/ubuntu:v2`。
+>> > 参数说明：
+>> >
+>> > > - -m:提交的描述信息
+>> > > - -a:指定镜像作者
+>> > > - e218edb10161:容器ID
+>> > > - duo/ubuntu:v2:指定要创建的目标镜像名
+>> > 执行`docker images`可以查看新镜像，执行`docker run -ti duo/ubuntu:16.0 bash`运行新镜像。
 > 5. 进入docker容器
 >> 运行`docker ps -a`查看容器信息；
 >> * `docker attach ID`进入容器: 使用该命令有一个问题。当多个窗口同时使用该命令进入该容器时，所有的窗口都会同步显示。如果有一个窗口阻塞了，那么其他窗口也无法再进行操作。
 >> * 使用SSH进入Docker容器: 使用了Docker容器之后不建议使用ssh进入到Docker容器内。
 >> * 使用nsenter进入Docker容器:
 >> * 使用`docker exec -it ID su xx`进入Docker容器
+>> * 执行`docker run -itd -v /home/lizhiduo/work/dockerShare:/share --name xx duo/ubuntu:v1.3`便可创建一个可以和主机共享目录的容器(share不存在时，系统会自动创建)。
+>> * 执行`docker run --privileged  --cap-add NET_ADMIN --cap-add NET_RAW --device=/dev/net/tun --net=xx -itd -v /home/lizhiduo/work/dockerShare:/share --name xx duo/ubuntu:v1.3`便可创建支持虚拟网络容器。
+>
+>6. docker网络配置
+>
+>   当Docker进程启动时，会在主机上创建一个名为docker0的虚拟网桥，此主机上启动的Docker容器会连接到这个虚拟网桥上。
+>
+>   docker网络模式：bridge方式(默认)、none方式、host方式、container复用方式
+>
+>   1、bridge方式： -–net=”bridge”
+>
+>   ![1540090519805](DOC\1540090519805.png)
+>
+>   容器与Host网络是连通的： 
+>   eth0实际上是veth pair的一端，另一端（vethb689485）连在docker0网桥上 
+>   通过Iptables实现容器内访问外部网络
+>
+>   2、none方式： -–net=”none” 
+>
+>   这样创建出来的容器完全没有网络，将网络创建的责任完全交给用户。可以实现更加灵活复杂的网络。 另外这种容器可以可以通过link容器实现通信。
+>
+>   3、host方式： -–net=”host” 
+>
+>   ![](Z:\docker\DOC\2018-10-21_10-59-10.png)
+>
+>   容器和主机共用网络资源，使用宿主机的IP和端口 
+>   这种方式是不安全的。如果在隔离良好的环境中（比如租户的虚拟机中）使用这种方式，问题不大。
+>
+>   4、container复用方式： -–net=”container:name or id” 
+>   新创建的容器和已经存在的一个容器共享一个IP网络资源
+>
+>   ![1540091001176](C:\Users\lizhi\AppData\Roaming\Typora\typora-user-images\1540091001176.png)
