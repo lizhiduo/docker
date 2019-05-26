@@ -8,22 +8,24 @@
 > 2. 解压：`xz -d xx.tar.xz`;`tar xvf xx.tar`
 > 3. 配置编译kernel:
 >> * 安装交叉编译工具链：`sudo apt-get install gcc-4.7-arm-linux-gnueabi`,关于交叉编译器版本，最好使用4.7,其它版本可能会导致编译不过；建立软连接：`ln -s /usr/bin/arm-linux-gnueabi-gcc-4.7 /usr/bin/arm-linux-gnueabi-gcc`; 安装bc:`sudo apt-get install bc`
->> *  配置编译：
+>> *  配置编译（CROSS_xx ARCH也可以通过export进行配置）：
 ```
 >> make CROSS_COMPILE=arm-linux-gnueabi- ARCH=arm vexpress_defconfig
 >> make CROSS_COMPILE=arm-linux-gnueabi- ARCH=arm menuconfig
 >> make CROSS_COMPILE=arm-linux-gnueabi- ARCH=arm -j8
+>> make CROSS_COMPILE=arm-linux-gnueabi- ARCH=arm dtbs
 ```
 >4. 运行：
 >
->   ```
->   qemu-system-arm \
->   	-M vexpress-a9 \
->   	-m 512M \
->   	-kernel linux-3.16/arch/arm/boot/zImage \
->   	-nographic \
->   	-append "console=ttyAMA0"
->   ```
+>```
+>qemu-system-arm \
+>	-M vexpress-a9 \
+>	-m 512M \
+>	-kernel linux-3.16/arch/arm/boot/zImage \
+>	-dtb linux-3.16/arch/arm/boot/dts/vexpress-v2p-ca9.dtb \
+>	-nographic \
+>	-append "console=ttyAMA0"
+>```
 >
 
 
@@ -50,11 +52,11 @@ void main()
 制作成cpio  
 `echo helloworld | cpio -o --format=newc > rootfs.img（find . | cpio -o -Hnewc | gzip -9 > ../rootfs.img）`
 运行：
-`qemu-system-arm -M vexpress-a9 -m 512M -kernel linux-3.16/arch/arm/boot/zImage -initrd rootfs.img  -nographic -append "console=ttyAMA0   rdinit=hello"`
+`qemu-system-arm -M vexpress-a9 -m 512M -kernel linux-3.16/arch/arm/boot/zImage -dtb linux-3.16/arch/arm/boot/dts/vexpress-v2p-ca9.dtb -initrd rootfs.img  -nographic -append "console=ttyAMA0   rdinit=hello"`
 
 ## busybox编译
 > 下载busybox：`wget http://www.busybox.net/downloads/busybox-1.26.0.tar.bz2`
-> 解压：`tar xvzf busybox-1.26.0.tar.bz2`
+> 解压：`tar xvjf busybox-1.26.0.tar.bz2`
 > 配置：
 >
 > ```
@@ -89,7 +91,7 @@ touch init.d/rcS fstab profile
 >>
 >> ```
 >> #!/bin/sh
->> /bin/mount -a
+>> /bin/mount -a #挂载内核的各种文件系统 (fstab里面有指定)
 >> /bin/mount -t tmpfs mdev /dev
 >> mdev -s
 >> ```
@@ -136,13 +138,17 @@ sudo mknod -m 666 dev/null c 1 3
 > sudo cp -r rootfs/*  tmpfs/
 > sudo umount tmpfs
 > ```
+启动流程：
+
+linux内核启动，挂载根文件系统。然后启动init进程（bootargs中可以指定），init进程这里其实就是busybox会读取inittab，这里没有inittab，根据busybox源码parse_inittab（init/init.c）函数分析可知，会使用/etc/init.d/rcS这个脚本。在ash.c的ash_main函数中会判断isloginsh，若为真则会去读取/etc/profile这个全局的环境变量文件。busybox做根文件系统，比较重要的几个文件：inittab、rcS、fstab、profile,而且在busybox源码examples/bootfloppy目录下有相应的例子。
+
 ```
 
 > 运行：
 > * 运行cpio:
-> `qemu-system-arm -M vexpress-a9 -m 512M -kernel linux-3.16/arch/arm/boot/zImage -initrd rootfs.img  -nographic -append "console=ttyAMA0 rdinit=sbin/init"`
+> `qemu-system-arm -M vexpress-a9 -m 512M -kernel linux-3.16/arch/arm/boot/zImage -dtb linux-3.16/arch/arm/boot/dts/vexpress-v2p-ca9.dtb -initrd rootfs.img  -nographic -append "console=ttyAMA0 rdinit=sbin/init"`
 > * 运行ext3:
-> `qemu-system-arm -M vexpress-a9 -m 512M -kernel linux-3.16/arch/arm/boot/zImage -nographic -append "root=/dev/mmcblk0 console=ttyAMA0" -sd ./rootfs.ext3`
+> `qemu-system-arm -M vexpress-a9 -m 512M -kernel linux-3.16/arch/arm/boot/zImage -dtb linux-3.16/arch/arm/boot/dts/vexpress-v2p-ca9.dtb -nographic -append "root=/dev/mmcblk0 console=ttyAMA0" -sd ./rootfs.ext3`
 
 ```
 
@@ -172,12 +178,20 @@ fi
 
 ```
 bootargs&bootcommand修改（自动化引导）（include/configs/vexpress_common.h）：
+/*
 #define CONFIG_BOOTCOMMAND \
         "tftp 0x60003000 uImage; \
         setenv bootargs 'root=/dev/nfs rw \
  nfsroot=192.168.2.28:/home/lizd/work1/rootfs init=/linuxrc \
  ip=192.168.2.100 console=ttyAMA0'; \
-        bootm 0x60003000"
+        bootm 0x60003000;"
+*/
+#define CONFIG_BOOTCOMMAND \
+        "tftp 0x60003000 uImage; tftp 0x60500000 vexpress-v2p-ca9.dtb; \
+        setenv bootargs 'root=/dev/nfs rw \
+ nfsroot=192.168.2.28:/home/lizd/work1/rootfs init=/linuxrc \
+ ip=192.168.2.100 console=ttyAMA0'; \
+        bootm 0x60003000 - 0x60500000;"
 /*NET*/
 #define CONFIG_IPADDR 192.168.2.100
 #define CONFIG_NETMASK 255.255.255.0
